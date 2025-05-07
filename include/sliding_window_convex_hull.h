@@ -94,6 +94,9 @@ struct Slope {
   Slope operator*(long double k) const { return Slope{dx * k, dy * k}; }
   bool operator<(const Slope &p) const { return dy * p.dx < dx * p.dy; }
   bool operator>(const Slope &p) const { return dy * p.dx > dx * p.dy; }
+  bool operator<=(const Slope &p) const { return !(*this > p); }
+  bool operator>=(const Slope &p) const { return !(*this < p); }
+  bool operator==(const Slope &p) const { return dy * p.dx == dx * p.dy; }
 
   explicit operator long double() const { return dy / dx; }
   long double decode() { return (long double)(*this); }
@@ -108,7 +111,8 @@ struct Point {
   long double y;
   Point(long double x = 0, long double y = 0) : x(x), y(y) {}
   Slope operator-(const Point &p) const { return Slope{x - p.x, y - p.y}; }
-  static long double CrossProduct(const Point &O, const Point &A, const Point &B) {
+  static long double CrossProduct(const Point &O, const Point &A,
+                                  const Point &B) {
     Slope OA = A - O;
     Slope OB = B - O;
     return Slope::CrossProduct(OA, OB);
@@ -128,8 +132,14 @@ struct PopConvexHull {
 
   PopConvexHull(const Point *p, size_t n, bool up, size_t *prev_hull_pos,
                 size_t *next_hull_pos)
-      : p_(p), n_(n), is_up_(up), l_(0), r_(0), hull_pos_(n),
-        prev_hull_pos_(prev_hull_pos), next_hull_pos_(next_hull_pos) {}
+      : p_(p),
+        n_(n),
+        is_up_(up),
+        l_(0),
+        r_(0),
+        hull_pos_(n),
+        prev_hull_pos_(prev_hull_pos),
+        next_hull_pos_(next_hull_pos) {}
 
   size_t operator[](size_t i) const { return hull_pos_[i]; }
 
@@ -262,8 +272,14 @@ struct PushConvexHull {
 
   PushConvexHull(const Point *p, size_t n, bool up, size_t *prev_hull_pos,
                  size_t *next_hull_pos)
-      : p_(p), n_(n), is_up_(up), l_(0), r_(0), hull_pos_(n),
-        prev_hull_pos_(prev_hull_pos), next_hull_pos_(next_hull_pos) {}
+      : p_(p),
+        n_(n),
+        is_up_(up),
+        l_(0),
+        r_(0),
+        hull_pos_(n),
+        prev_hull_pos_(prev_hull_pos),
+        next_hull_pos_(next_hull_pos) {}
 
   size_t operator[](size_t i) const { return hull_pos_[i]; }
 
@@ -382,8 +398,16 @@ struct SlidingWindowConvexHull {
   PushConvexHull<Alloc> push_hull_;
 
   SlidingWindowConvexHull(const Point *p, size_t n, bool up)
-      : p_(p), n_(n), is_up_(up), l_(0), r_(0), mid_(0), tan_l_(0), tan_r_(0),
-        tan_l_pos_(0), tan_r_pos_(0),
+      : p_(p),
+        n_(n),
+        is_up_(up),
+        l_(0),
+        r_(0),
+        mid_(0),
+        tan_l_(0),
+        tan_r_(0),
+        tan_l_pos_(0),
+        tan_r_pos_(0),
         prev_hull_pos_(Alloc<size_t>().allocate(n)),
         next_hull_pos_(Alloc<size_t>().allocate(n)),
         pop_hull_(p, n, up, prev_hull_pos_, next_hull_pos_),
@@ -473,10 +497,22 @@ struct SlidingWindowConvexHull {
     if (should_reset) {
       tan_r_ = r_;
       tan_r_pos_ = push_hull_.size() - 1;
-      while (move_tan_l_left())
-        ;
+      while (move_tan_l_left());
     }
     r_++;
+  }
+
+  void PopHullFront() {
+    size_t s = size();
+    assert(s > 0);
+    if (s == 1) {
+      PopFront();
+    } else {
+      size_t target = operator[](1);
+      while (operator[](0) != target) {
+        PopFront();
+      }
+    }
   }
 
   void PopFront() {
@@ -654,4 +690,4 @@ struct SlidingWindowConvexHull {
   }
 };
 
-} // namespace sliding_window_convex_hull
+}  // namespace sliding_window_convex_hull
