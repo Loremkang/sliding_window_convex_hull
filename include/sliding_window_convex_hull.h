@@ -42,7 +42,7 @@ struct CustomizeDeque {
 
   ~CustomizeDeque() {
     if (data_ != nullptr) {
-      free(data_);
+      Alloc().deallocate(data_, buffer_size_);
       data_ = nullptr;
     }
   }
@@ -391,11 +391,11 @@ struct SlidingWindowConvexHull {
 
   ~SlidingWindowConvexHull() {
     if (prev_hull_pos_ != nullptr) {
-      free(prev_hull_pos_);
+      Alloc<size_t>().deallocate(prev_hull_pos_, n_);
       prev_hull_pos_ = nullptr;
     }
     if (next_hull_pos_ != nullptr) {
-      free(next_hull_pos_);
+      Alloc<size_t>().deallocate(next_hull_pos_, n_);
       next_hull_pos_ = nullptr;
     }
   }
