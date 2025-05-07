@@ -390,6 +390,10 @@ struct SlidingWindowConvexHull {
         push_hull_(p, n, up, prev_hull_pos_, next_hull_pos_) {}
 
   ~SlidingWindowConvexHull() {
+    if (prev_hull_pos_ != nullptr) {
+      free(prev_hull_pos_);
+      prev_hull_pos_ = nullptr;
+    }
     if (next_hull_pos_ != nullptr) {
       free(next_hull_pos_);
       next_hull_pos_ = nullptr;
