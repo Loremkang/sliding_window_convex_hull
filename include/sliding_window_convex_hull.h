@@ -78,9 +78,11 @@ struct CustomizeDeque {
   }
 
   T &operator[](size_t index) {
+    assert(index < size());
     return data_[(front_ + index) & buffer_size_mask_];
   }
   const T &operator[](size_t index) const {
+    assert(index < size());
     return data_[(front_ + index) & buffer_size_mask_];
   }
 
@@ -281,7 +283,10 @@ struct PushConvexHull {
         prev_hull_pos_(prev_hull_pos),
         next_hull_pos_(next_hull_pos) {}
 
-  size_t operator[](size_t i) const { return hull_pos_[i]; }
+  size_t operator[](size_t i) const {
+    assert(i < size());
+    return hull_pos_[i];
+  }
 
   size_t size() const { return hull_pos_.size(); }
 
@@ -459,6 +464,8 @@ struct SlidingWindowConvexHull {
     if (tan_l_pos_ == 0) {
       return false;
     }
+    assert(pop_hull_.size() > 0 && push_hull_.size() > 0);
+
     size_t pos1 = pop_hull_[tan_l_pos_ - 1];
     size_t pos2 = pop_hull_[tan_l_pos_];
     double cross_product = Point::CrossProduct(p_[pos1], p_[pos2], p_[tan_r_]);
@@ -476,6 +483,8 @@ struct SlidingWindowConvexHull {
     if (tan_r_pos_ == 0) {
       return false;
     }
+    assert(pop_hull_.size() > 0 && push_hull_.size() > 0);
+
     size_t pos1 = push_hull_[tan_r_pos_ - 1];
     size_t pos2 = push_hull_[tan_r_pos_];
     double cross_product = Point::CrossProduct(p_[tan_l_], p_[pos1], p_[pos2]);
@@ -491,13 +500,19 @@ struct SlidingWindowConvexHull {
 
   void PushBack() {
     assert(r_ < n_);
-    double cross_product = Point::CrossProduct(p_[tan_l_], p_[tan_r_], p_[r_]);
-    bool should_reset = is_up_ ? cross_product > EPS : cross_product < -EPS;
-    push_hull_.PushBack();
-    if (should_reset) {
-      tan_r_ = r_;
-      tan_r_pos_ = push_hull_.size() - 1;
-      while (move_tan_l_left());
+    if (pop_hull_.size() == 0) {
+      push_hull_.PushBack();
+      assert(tan_r_pos_ == 0);
+      assert(tan_r_ == push_hull_[0]);
+    } else {
+      double cross_product = Point::CrossProduct(p_[tan_l_], p_[tan_r_], p_[r_]);
+      bool should_reset = is_up_ ? cross_product > EPS : cross_product < -EPS;
+      push_hull_.PushBack();
+      if (should_reset) {
+        tan_r_ = r_;
+        tan_r_pos_ = push_hull_.size() - 1;
+        while (move_tan_l_left());
+      }
     }
     r_++;
   }
@@ -530,16 +545,19 @@ struct SlidingWindowConvexHull {
       pop_hull_.Initialize(l_, mid_);
       tan_l_pos_ = tan_r_pos_ = 0;
       tan_l_ = pop_hull_[0];
-      tan_r_ = push_hull_[0];
-
-      prev_hull_pos_[mid_] = mid_;
+      if (push_hull_.size() > 0) {
+        tan_r_ = push_hull_[0];
+        prev_hull_pos_[mid_] = mid_;
+      }
     }
 
     if (pop_hull_.size() == 1) {
       pop_hull_.PopFront();
       tan_l_pos_ = tan_r_pos_ = 0;
       // no valid tan_l_
-      tan_r_ = push_hull_[0];
+      if (push_hull_.size() > 0) {
+        tan_r_ = push_hull_[0];
+      }
       goto final;
     } else {
       if (tan_l_pos_ == 0) {
