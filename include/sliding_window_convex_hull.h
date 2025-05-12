@@ -147,6 +147,11 @@ struct PopConvexHull {
 
   size_t size() const { return hull_pos_.size(); }
 
+  void Clear() {
+    hull_pos_.clear();
+    l_ = r_;
+  }
+
   void Initialize(size_t l, size_t r) {
     hull_pos_.clear();
 
@@ -173,6 +178,17 @@ struct PopConvexHull {
       next_hull_pos_[i] = hull_pos_.size() ? hull_pos_.front() : i;
       prev_hull_pos_[next_hull_pos_[i]] = i;
       hull_pos_.push_front(i);
+    }
+  }
+
+  void PopHullFront() {
+    assert(l_ == hull_pos_.front());
+    hull_pos_.pop_front();
+    if (hull_pos_.size() == 0) {
+      l_ = r_;
+    } else {
+      l_ = hull_pos_.front();
+      prev_hull_pos_[l_] = l_;
     }
   }
 
@@ -290,13 +306,21 @@ struct PushConvexHull {
 
   size_t size() const { return hull_pos_.size(); }
 
-  size_t PopFront() {
+  void Clear() {
+    hull_pos_.clear();
+    l_ = r_;
+  }
+
+  size_t PopHullFront() {
     hull_pos_.pop_front();
     if (hull_pos_.size() == 0) {
       // run out of elements
-      return r_;
+      l_ = r_;
+      return l_;
     } else {
-      return hull_pos_.front();
+      l_ = hull_pos_.front();
+      prev_hull_pos_[l_] = l_;
+      return l_;
     }
   }
 
@@ -502,8 +526,8 @@ struct SlidingWindowConvexHull {
     assert(r_ < n_);
     if (pop_hull_.size() == 0) {
       push_hull_.PushBack();
-      assert(tan_r_pos_ == 0);
-      assert(tan_r_ == push_hull_[0]);
+      tan_r_pos_ = 0;
+      tan_r_ = push_hull_[0];
     } else {
       double cross_product = Point::CrossProduct(p_[tan_l_], p_[tan_r_], p_[r_]);
       bool should_reset = is_up_ ? cross_product > EPS : cross_product < -EPS;
@@ -518,16 +542,48 @@ struct SlidingWindowConvexHull {
   }
 
   void PopHullFront() {
-    size_t s = size();
-    assert(s > 0);
-    if (s == 1) {
-      PopFront();
+    assert(size() > 0);
+
+    if (size() == 1) {
+      push_hull_.r_ = pop_hull_.r_ = l_ = mid_ = r_;
+      push_hull_.Clear();
+      pop_hull_.Clear();
+      tan_l_pos_ = tan_r_pos_ = 0;
+      return;
     } else {
-      size_t target = operator[](1);
-      while (operator[](0) != target) {
-        PopFront();
+      size_t pos1 = operator[](1);
+      if (pos1 >= mid_) {
+        pop_hull_.r_ = l_ = mid_ = pos1;
+        pop_hull_.Clear();
+        while (push_hull_[0] != pos1) {
+          push_hull_.PopHullFront();
+        }
+        tan_l_pos_ = tan_r_pos_ = 0;
+        tan_r_ = push_hull_[0];
+      } else {
+        pop_hull_.PopHullFront();
+        if (tan_l_pos_ == 0) {
+          tan_l_ = pop_hull_[0];
+        } else {
+          tan_l_pos_ --;
+          assert(tan_l_ == pop_hull_[tan_l_pos_]);
+        }
+  
+        while (true) {
+          if (move_tan_l_left()) {
+            continue;
+          }
+          if (move_tan_r_left()) {
+            continue;
+          }
+          break;
+        }
       }
     }
+
+    l_ = (size() > 0) ? operator[](0) : r_;
+    mid_ = push_hull_.l_;
+    return;
   }
 
   void PopFront() {
@@ -541,7 +597,7 @@ struct SlidingWindowConvexHull {
     assert(size() > 0);
 
     if (pop_hull_.size() == 0) {
-      mid_ = push_hull_.PopFront();
+      mid_ = push_hull_.PopHullFront();
       pop_hull_.Initialize(l_, mid_);
       tan_l_pos_ = tan_r_pos_ = 0;
       tan_l_ = pop_hull_[0];
@@ -603,19 +659,6 @@ struct SlidingWindowConvexHull {
       return next_hull_pos_[i];
     }
   }
-
-  // void PopHullFront() {
-  //   assert(size() > 0);
-  //   if (!pop_hull_.size()) {
-  //     size_t pos = push_hull_.PopFront();
-  //     pop_hull_.Initialize(l_, pos);
-  //     tan_l_pos_ = tan_r_pos_ = 0;
-  //     tan_l_ = pop_hull_[0];
-  //     tan_r_ = push_hull_[0];
-  //   }
-  //   assert(l_ == pop_hull_[0]);
-  //   pop_hull_.PopFront();
-  // }
 
   void print() {
     printf("%s ConvexHull:\n", is_up_ ? "Lower" : "Upper");

@@ -51,7 +51,22 @@ int main(int argc, char *argv[]) {
     enum action {
         PUSH,
         POP,
+        POPHULL,
         STOP
+    };
+
+    auto to_str_action = [&](action act) {
+        switch (act) {
+            case PUSH:
+                return "PUSH";
+            case POP:
+                return "POP";
+            case POPHULL:
+                return "POPHULL";
+            case STOP:
+                return "STOP";
+        }
+        return "UNKNOWN";
     };
 
     auto act = [&](size_t rnd) {
@@ -64,8 +79,14 @@ int main(int argc, char *argv[]) {
         if (swch.r_ == size) {
             return POP;
         }
-        uint64_t action = hash64(rnd) % 3;
-        return action == 0 ? POP : PUSH;
+        uint64_t action = hash64(rnd) % 100;
+        if (action < 2) {
+            return POPHULL;
+        } else if (action < 20) {
+            return POP;
+        } else {
+            return PUSH;
+        }
     };
 
     for (size_t i = 0; true; i ++) {
@@ -76,12 +97,33 @@ int main(int argc, char *argv[]) {
         size_t pos = (action == PUSH) ? swch.r_ : swch.l_;
         size_t l = swch.l_;
         size_t r = swch.r_;
-        printf("i: %ld Action: %s Pos: %ld Size: %ld Dist: (%ld, %ld) \n", i, (action == PUSH ? "PUSH" : "POP"), pos, swch.size(), l, r);
+        printf("i: %ld Action: %s Pos: %ld Size: %ld Dist: (%ld, %ld) \n", i, to_str_action(action), pos, swch.size(), l, r);
         fflush(stdout);
         if (action == PUSH) {
             swch.PushBack();
-        } else {
+            assert(swch.l_ == l && swch.r_ == r + 1);
+            if (swch.size() > 0) {
+            assert(swch[0] == swch.l_ && swch[swch.size() - 1] == swch.r_ - 1);
+            }
+        } else if (action == POP){
             swch.PopFront();
+            assert(swch.l_ == l + 1 && swch.r_ == r);
+            if (swch.size() > 0) {
+                assert(swch[0] == swch.l_ && swch[swch.size() - 1] == swch.r_ - 1);
+            }
+        } else if (action == POPHULL) {
+            size_t size = swch.size();
+            if (size > 1) {
+                size_t nxt = swch[1];
+                swch.PopHullFront();
+                assert(swch.l_ == nxt && swch.r_ == r);
+                assert(swch[0] == swch.l_ && swch[swch.size() - 1] == swch.r_ - 1);
+            } else {
+                swch.PopHullFront();
+                assert(swch.size() == 0);
+                assert(swch.l_ == swch.r_);
+            }
+            assert(swch.size() + 1 == size);
         }
         // swch.print();
         swch.verify();
