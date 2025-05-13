@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
             return POP;
         }
         uint64_t action = hash64(rnd) % 100;
-        if (action < 2) {
+        if (action == 0) {
             return POPHULL;
         } else if (action < 20) {
             return POP;

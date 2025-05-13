@@ -245,6 +245,8 @@ struct PopConvexHull {
       assert(pos >= l_ && pos < r_);
       assert(PrevHullPos(pos) == prev);
       assert(NextHullPos(pos) == next);
+      assert(i == 0 || pos > prev);
+      assert(i == hull_size - 1 || pos < next);
     }
 
     for (size_t i = 0; i + 2 < hull_size; i++) {
@@ -379,6 +381,8 @@ struct PushConvexHull {
       assert(pos >= l_ && pos < r_);
       assert(PrevHullPos(pos) == prev);
       assert(NextHullPos(pos) == next);
+      assert(i == 0 || pos > prev);
+      assert(i == hull_size - 1 || pos < next);
     }
 
     for (size_t i = 0; i + 2 < hull_size; i++) {
@@ -683,6 +687,8 @@ struct SlidingWindowConvexHull {
       assert(pos >= l_ && pos < r_);
       assert(PrevHullPos(pos) == prev);
       assert(NextHullPos(pos) == next);
+      assert(i == 0 || pos > prev);
+      assert(i == hull_size - 1 || pos < next);
     }
 
     for (size_t i = 0; i + 2 < hull_size; i++) {
