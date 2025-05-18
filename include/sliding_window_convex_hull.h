@@ -26,7 +26,7 @@ struct CustomizeDeque {
     buffer_size_mask_ = buffer_size - 1;
     assert(buffer_size > 0 && (buffer_size & buffer_size_mask_) == 0);
 
-    printf("buffer_size = %ld\n", buffer_size);
+    // printf("buffer_size = %ld\n", buffer_size);
 
     front_ = 0;
     back_ = 0;
